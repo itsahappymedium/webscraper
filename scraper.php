@@ -77,6 +77,7 @@ foreach ($blogs as $blog) {
 	$date_gmt = $the_blog_html('meta[property="article:published_time"]', 0)->content;
 	$date = date("M j, Y", strtotime($date_gmt));
 
+	// @TODO: Also get the meta thumbnail since that's important to have.
 	// @TODO: Also lookup category by slug for insert_post
 
 	// Convert the rest of the content to proper HTML and stuff.
