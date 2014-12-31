@@ -49,10 +49,10 @@ $count = 0;
 
 foreach ($blogs as $blog) {
 
-	// if ( $count < 174 ) {
-	// 	$count++;
-	// 	continue;
-	// }
+	if ( $count < 124 ) {
+		$count++;
+		continue;
+	}
 
 	$the_blog = $blog;
 	$tags = array();
@@ -127,20 +127,22 @@ foreach ($blogs as $blog) {
 	));
 
 	// @TODO: Also get the meta thumbnail since that's important to have.
-	$original_thumbnail = $the_blog_html('meta[property=og:image]', 0)->content;
-	media_sideload_image( $original_thumbnail, $post_id, basename($original_thumbnail) );
+	$original_thumbnail = $the_blog_html('meta[property="og:image"]', 0)->content;
+	var_dump($original_thumbnail);
+	if ( ! empty($original_thumbnail) ) {
+		$file_array = array();
+		// Download file to temp location.
+		$file_array['name'] = basename( $original_thumbnail );
+		$file_array['tmp_name'] = download_url( $original_thumbnail );
+		// If error storing temporarily, return the error.
+		if ( is_wp_error( $file_array['tmp_name'] ) ) {
+			var_dump($file_array['tmp_name']);
+		}
+		$thumbnail_id = media_handle_sideload( $file_array, $post_id, basename( $original_thumbnail ) );
 
-	// Get most recent upload (that one) and use it for the featured image.
-	$most_recent_attachments = get_posts( array(
-		'post_type'			=> 'attachment',
-		'posts_per_page'	=> 1,
-		'post_status'		=> null,
-		'post_mime_types' 	=> 'image'
-	) );
-	$attachment = $most_recent_attachments[0];
-
-	// Set the new post thumbnail
-	set_post_thumbnail( $post_id, $attachment->ID );
+		// Set the new post thumbnail
+		set_post_thumbnail( $post_id, $thumbnail_id );
+	}
 
 	// Store images in an array
 	$images = array();
@@ -193,8 +195,6 @@ foreach ($blogs as $blog) {
 		'ID' => $post_id,
 		'post_content' => $content_html
 	));
-
-	var_dump($response);
 
 	$count++;
 }
