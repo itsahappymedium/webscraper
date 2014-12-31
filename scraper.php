@@ -45,10 +45,14 @@ foreach ($sitemap as $page) {
 
 $count = 0;
 
+// $blogs = array_reverse($blogs);
+
 foreach ($blogs as $blog) {
 
-	if ( $count == 1 )
-		exit;
+	// if ( $count < 174 ) {
+	// 	$count++;
+	// 	continue;
+	// }
 
 	$the_blog = $blog;
 	$tags = array();
@@ -67,12 +71,14 @@ foreach ($blogs as $blog) {
 	}
 
 	// Delete the tags
-	$the_blog_html('div.blog-tags', 0)->delete();
+	if ( $the_blog_html('div.blog-tags', 0) ) {
+		$the_blog_html('div.blog-tags', 0)->delete();
+	}
 
 	// Grab other important data
 	$title = $the_blog_html('h1', 0)->getPlainText();
-	// @TODO: Perhaps set authors beforehand and use an array to reference which ID they are by matching text
-	$author = $the_blog_html('a[rel=author]', 0) ? $the_blog_html('a[rel=author]', 0)->getPlainText() : 'admin';
+	// Set authors beforehand and use an array to reference which ID they are by matching text
+	$author = $the_blog_html('meta[name=author]', 0) ? $the_blog_html('meta[name=author]', 0)->content : 'happy.medium';
 	$description = mb_convert_encoding( $the_blog_html('meta[name="description"]', 0)->content, "HTML-ENTITIES", "UTF-8" );
 	$date_gmt = $the_blog_html('meta[property="article:published_time"]', 0)->content;
 	$date = date("Y-m-d H:i:s", strtotime($date_gmt));
@@ -83,7 +89,7 @@ foreach ($blogs as $blog) {
 		$category_id = $category->term_id;
 	} else {
 		$category_id = wp_insert_category( array(
-			'category_name' => $category_slug,
+			'cat_name' => $category_slug,
 			'category_nicename' => $category_slug
 		));
 	}
@@ -121,6 +127,20 @@ foreach ($blogs as $blog) {
 	));
 
 	// @TODO: Also get the meta thumbnail since that's important to have.
+	$original_thumbnail = $the_blog_html('meta[property=og:image]', 0)->content;
+	media_sideload_image( $original_thumbnail, $post_id, basename($original_thumbnail) );
+
+	// Get most recent upload (that one) and use it for the featured image.
+	$most_recent_attachments = get_posts( array(
+		'post_type'			=> 'attachment',
+		'posts_per_page'	=> 1,
+		'post_status'		=> null,
+		'post_mime_types' 	=> 'image'
+	) );
+	$attachment = $most_recent_attachments[0];
+
+	// Set the new post thumbnail
+	set_post_thumbnail( $post_id, $attachment->ID );
 
 	// Store images in an array
 	$images = array();
@@ -146,14 +166,6 @@ foreach ($blogs as $blog) {
 		// Upload image and attach it to the post
 		$new_image_tag = media_sideload_image( $prefix . $image->src, $post_id, $image->alt );
 		$image->setOuterText($new_image_tag);
-	}
-
-	// Loop back through each image node and replace the address of each image
-	// with the updated wordpress one.
-	foreach ($image_nodes as $idx => $image) {
-		// $image_nodes[$idx]->src = $attachments[$idx]; // SET WP ATTACHMENT LINK HERE
-		// Or just replace the entire inner text with the new image tag
-		//
 	}
 
 	// Convert the rest of the content to proper HTML and stuff.
